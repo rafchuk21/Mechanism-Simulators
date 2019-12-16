@@ -1,4 +1,6 @@
 function motorData = MotorData()
+% Returns motor data in a table.
+
 colNames = {'Falcon', 'NEO', 'MiniCIM', 'CIM', 'Redline', 'BAG'};
 rowNames = {'Free Speed', 'Stall Torque', 'Stall Current', 'Free Current'};
 

@@ -2,11 +2,9 @@ function SimulationResults = ...
     DrivetrainSimulator(motor, numMotors, lowGear, highGear, wheelDiameter,...
     robotResistance, Ev, Et, weight, Rt, dt, V0, targetDist, inputVoltage, ...
     currentLimit, voltageRamp)
-% Simulates the behavior of a drivetrain given a "full ahead" voltage.
-% Accounts for voltage sag and implements current limiting and voltage
-% ramping. Does not come to rest at target distance and does not account
-% for wheel slip.
-%
+% Simulates the behavior of a drivetrain given a "full ahead" voltage. Accounts for voltage sag and implements current
+% limiting and voltage ramping. Does not come to rest at target distance
+% and does not account for wheel slip.
 % motor: String name of motor on drivetrain
 % numMotors: Number of motors on drivetrain
 % lowGear: Low gearing of drivetrain (X:1)

@@ -17,7 +17,7 @@ voltageRamp = 120;
 
 minGearing = 2;
 maxGearing = 20;
-delta = .2;
+delta = .1;
 
 motordata = MotorData();
 freeSpeed = motordata.(motor)(1);
@@ -85,7 +85,7 @@ yticklabels(ax2, sprintfc('%.2f', freeSpeed/60*pi*wheelDiameter*velEfficiency/12
 % set(ax2, 'ydir', 'reverse');
 xlabel('Theoretical Free Speed (ft/s)')
 ylabel('Theoretical Free Speed (ft/s)')
-axes(ax1);
+axes(handle.ax1
 grid on
 hold off
 
