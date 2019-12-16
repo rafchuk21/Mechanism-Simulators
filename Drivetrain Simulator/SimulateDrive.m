@@ -7,6 +7,9 @@ results = DrivetrainSimulator(motor, numMotors, lowGear, highGear, wheelDiameter
     robotResistance, Ev, Et, weight, Rt, dt, V0, targetDist, inputVoltage, ...
     currentLimit, voltageRamp);
 
+motorData = MotorData();
+freeSpeed = motorData.(motor)(1);
+
 f = figure;
 
 endTime = results(end,1);
@@ -46,12 +49,29 @@ xlim([0,endTime]);
 % Voltage vs Time
 subplot(2,3,5)
 hold on
-plot(results(:,1), results(:,10), 'DisplayName', 'System Voltage');
-plot(results(:,1), results(:,8), 'DisplayName', 'Motor Voltage');
+p1 = plot(results(:,1), results(:,10), 'DisplayName', 'System Voltage');
+p2 = plot(results(:,1), results(:,8), 'DisplayName', 'Motor Voltage');
+plot([0.0,endTime],[7.0,7.0], '--r');
 xlabel('Time (s)')
 ylabel('Voltage (V)')
 grid on
-legend('Location', 'southeast')
+legend([p1, p2], 'Location', 'southeast')
 xlim([0,endTime]);
+ylim([0,inputVoltage]);
 hold off
+
+s = subplot(2,3,6);
+g2s = freeSpeed/60*pi*wheelDiameter*Ev/inputVoltage;
+annotation(f, 'textbox', [s.Position(1),s.Position(2), s.Position(3)*1.1,s.Position(4)*.9], 'string',...
+    {sprintf('Gearing (X:1): %.1f/%.1f', lowGear, highGear),...
+    sprintf('Speeds (ft/s): %.1f/%.1f', g2s/lowGear, g2s/highGear),...
+    sprintf('Time to Target: %.2f s', endTime),...
+    sprintf('Power Use: %.2g A*h',numMotors*sum(results(:,7))*dt/3600),...
+    sprintf('Current Limit: %.0f A', currentLimit), ...
+    sprintf('Voltage Ramp: %.0f V/s', voltageRamp)});
+delete(s);    
+
+sgtitle(f, {'Time to Target vs Gearings'; [num2str(numMotors), ' ', motor, ', ', ...
+    num2str(wheelDiameter), 'in Wheel, ' num2str(inputVoltage), 'V Input']});
+f.Position(3) = f.Position(3) * 1.2;
 end
