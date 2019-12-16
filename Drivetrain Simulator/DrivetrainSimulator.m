@@ -1,6 +1,6 @@
 function SimulationResults = ...
     DrivetrainSimulator(motor, numMotors, lowGear, highGear, wheelDiameter,...
-    robotResistance, Ev, Et, weight, Rt, dt, V0, targetDist, inputVoltage, ...
+    robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, targetDist, inputVoltage, ...
     currentLimit, voltageRamp)
 % Simulates the behavior of a drivetrain given a "full ahead" voltage.
 % Accounts for voltage sag and implements current limiting and voltage
@@ -17,6 +17,8 @@ function SimulationResults = ...
 % Ev: Velocity efficiency as a fraction from 0 to 1
 % Et: Torque efficiency as a fraction from 0 to 1
 % weight: Robot weight (lbs)
+% CoF: Wheel coefficient of friction
+% Rt: Wheel resistance torque
 % dt: Time interval for Euler's method (s)
 % V0: Initial velocity (in/s)
 % targetDist: Sprint distance to end simulation (in)
@@ -77,6 +79,11 @@ while (SimulationResults(idx,2) < targetDist && SimulationResults(idx, 1) < 60)
     newVv = kV(shiftState)*newVel;
     newVa = newVoltage - kC(shiftState) - newVv;
     newAccel = newVa/kA(shiftState);
+    if newAccel > gsToInchPerSecSquared*CoF % Apply traction limit
+        newAccel = gsToInchPerSecSquared*CoF;
+        newVa = newAccel*kA(shiftState);
+        newVoltage = newVa + kC(shiftState) + newVv;
+    end
     %newCurrent = abs(kC(shiftState)+newVa)/motorResistance;
     
     idx = idx + 1;
