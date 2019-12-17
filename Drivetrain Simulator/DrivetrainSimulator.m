@@ -1,7 +1,7 @@
 function SimulationResults = ...
     DrivetrainSimulator(motor, numMotors, lowGear, highGear, wheelDiameter,...
     robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, targetDist, inputVoltage, ...
-    currentLimit, voltageRamp)
+    currentLimit, voltageRamp, oop)
 % Simulates the behavior of a drivetrain given a "full ahead" voltage.
 % Accounts for voltage sag and implements current limiting and voltage
 % ramping. Does not come to rest at target distance and does not account
@@ -25,6 +25,10 @@ function SimulationResults = ...
 % inputVoltage: Constant voltage input, available battery voltage (V)
 % currentLimit: Current limit (A)
 % voltageRamp: Voltage ramp (V/s)
+
+if (~exist('oop', 'var'))
+    oop = false;
+end
 
 nmToInLb = 8.85074579;
 gsToInchPerSecSquared = 386.09;
@@ -59,72 +63,74 @@ lastShift = -1;
 preshiftV = 0;
 shiftFreeze = 0.00;
 
+if (oop)
 %% Object Oriented
-% sim = MechanismSimulator(kC(1), kV(1), kA(1), currentLimit, ...
-%                 accelLimit, inputVoltage, robotResistance, numMotors, ...
-%                 motorResistance);
-% while (sim.getPos(end) < targetDist && sim.getTime(end) < 60)
-%     Vin = min(inputVoltage, sim.getVoltage(end) + voltageRamp*dt);
-%     if (sim.getVel(end) < shiftVel*.8 && shiftState == 2) % Shift Down
-%         shiftState = 1;
-%         sim.kC = kC(1);
-%         sim.kV = kV(1);
-%         sim.kA = kA(1);
-%         lastShift = sim.getTime(end);
-%         %fprintf('Shift down @ %.3f\n s', lastShift)
-%         preshiftV = Vin;
-%     elseif (sim.getVel(end) > shiftVel && shiftState == 1) % Shift Up
-%         shiftState = 2;
-%         sim.kC = kC(2);
-%         sim.kV = kV(2);
-%         sim.kA = kA(2);
-%         lastShift = sim.getTime(end);
-%         %fprintf('Shift up   @ %.3f\n s', lastShift)
-%         preshiftV = Vin;
-%     end
-%     
-%     if (sim.getTime(end) - lastShift < shiftFreeze)
-%         sim.step((sim.getTime(end)-lastShift)/shiftFreeze*preshiftV, dt);
-%     else
-%         sim.step(Vin, dt);
-%     end
-% end
-% SimulationResults = sim.getResults;
-
-%% Not Object Oriented
-idx = 1;
-simResults = [0,0,0,0,0,0,0,sysVoltage];
-while (simResults(idx,2) < targetDist && simResults(idx,1) < 60)
-    Vin = min(inputVoltage, simResults(idx,7)+voltageRamp*dt);
-    
-    if (simResults(idx,3) < shiftVel)
-        shiftState = 1;
-    else
-        shiftState = 2;
+    sim = MechanismSimulator(kC(1), kV(1), kA(1), currentLimit, ...
+        accelLimit, inputVoltage, robotResistance, numMotors, ...
+        motorResistance);
+    while (sim.getPos(end) < targetDist && sim.getTime(end) < 60)
+        Vin = min(inputVoltage, sim.getVoltage(end) + voltageRamp*dt);
+        if (sim.getVel(end) < shiftVel*.8 && shiftState == 2) % Shift Down
+            shiftState = 1;
+            sim.kC = kC(1);
+            sim.kV = kV(1);
+            sim.kA = kA(1);
+            lastShift = sim.getTime(end);
+            %fprintf('Shift down @ %.3f\n s', lastShift)
+            preshiftV = Vin;
+        elseif (sim.getVel(end) > shiftVel && shiftState == 1) % Shift Up
+            shiftState = 2;
+            sim.kC = kC(2);
+            sim.kV = kV(2);
+            sim.kA = kA(2);
+            lastShift = sim.getTime(end);
+            %fprintf('Shift up   @ %.3f\n s', lastShift)
+            preshiftV = Vin;
+        end
+        
+        if (sim.getTime(end) - lastShift < shiftFreeze)
+            sim.step((sim.getTime(end)-lastShift)/shiftFreeze*preshiftV, dt);
+        else
+            sim.step(Vin, dt);
+        end
     end
-    
-    [newAccel, newVoltage, newCurrent, newSysVoltage] = MechanismTimestep(...
-        simResults(idx,3), Vin, simResults(idx,8), kC(shiftState), kV(shiftState),...
-        kA(shiftState), currentLimit, accelLimit, inputVoltage, robotResistance,...
-        numMotors, motorResistance);
-    
-    newTime = simResults(idx,1) + dt;
-    newPos = simResults(idx,2) + dt*simResults(idx,3);
-    newVel = simResults(idx,3) + dt*newAccel;
-    
-    idx = idx+1;
-    if (idx > size(simResults, 1))
-        temp = simResults;
-        simResults = NaN(size(simResults,1)*2, size(simResults,2));
-        simResults(1:size(temp,1),:) = temp;
+    SimulationResults = sim.getResults;
+else
+    %% Not Object Oriented
+    idx = 1;
+    simResults = [0,0,0,0,0,0,0,sysVoltage];
+    while (simResults(idx,2) < targetDist && simResults(idx,1) < 60)
+        Vin = min(inputVoltage, simResults(idx,7)+voltageRamp*dt);
+        
+        if (simResults(idx,3) < shiftVel)
+            shiftState = 1;
+        else
+            shiftState = 2;
+        end
+        
+        [newAccel, newVoltage, newCurrent, newSysVoltage] = MechanismTimestep(...
+            simResults(idx,3), Vin, simResults(idx,8), kC(shiftState), kV(shiftState),...
+            kA(shiftState), currentLimit, accelLimit, inputVoltage, robotResistance,...
+            numMotors, motorResistance);
+        
+        newTime = simResults(idx,1) + dt;
+        newPos = simResults(idx,2) + dt*simResults(idx,3);
+        newVel = simResults(idx,3) + dt*newAccel;
+        
+        idx = idx+1;
+        if (idx > size(simResults, 1))
+            temp = simResults;
+            simResults = NaN(size(simResults,1)*2, size(simResults,2));
+            simResults(1:size(temp,1),:) = temp;
+        end
+        
+        simResults(idx,:) = [newTime,newPos,newVel,newAccel,newCurrent,...
+            newVoltage,Vin,newSysVoltage];
     end
-    
-    simResults(idx,:) = [newTime,newPos,newVel,newAccel,newCurrent,...
-        newVoltage,Vin,newSysVoltage];
+    simResults = simResults(1:idx,:);
+    SimulationResults = array2table(simResults);
+    SimulationResults.Properties.VariableNames(1:8) = {'time', 'position', ...
+        'velocity', 'acceleration', 'current', 'voltage', 'desiredVoltage', ...
+        'systemVoltage'};
 end
-simResults = simResults(1:idx,:);
-SimulationResults = array2table(simResults);
-SimulationResults.Properties.VariableNames(1:8) = {'time', 'position', ...
-                'velocity', 'acceleration', 'current', 'voltage', 'desiredVoltage', ...
-                'systemVoltage'};
 end
