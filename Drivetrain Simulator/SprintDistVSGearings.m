@@ -18,7 +18,7 @@ voltageRamp = 120;
 
 minGearing = 2;
 maxGearing = 20;
-delta = .2;
+delta = .5;
 
 motordata = MotorData();
 freeSpeed = motordata.(motor)(1);

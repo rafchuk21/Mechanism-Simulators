@@ -13,4 +13,3 @@ newVoltage = motorResistance*newCurrent+Vv;
 newAccel = (motorResistance*newCurrent-kC)/kA;
 
 end
-

@@ -53,45 +53,78 @@ sysVoltage = inputVoltage - voltage/motorResistance*numMotors*robotResistance;
 shiftVel = (kV(2)/kA(2)-kV(1)/kA(1))^-1*(inputVoltage*(1/kA(2)-1/kA(1))-(kC(2)/kA(2)-kC(1)/kA(1)));
 %disp(shiftVel)
 
-idx = 1;
-% [t, pos, vel, accel, current, voltage, inputVoltage, sysVoltage]
-SimulationResults = [0.0, 0.0, voltage-kC(1)-kV(1)*V0, ...
-    (voltage - kC(1) - kV(1)*V0)/kA(1), voltage/motorResistance, voltage,...
-    Vin, sysVoltage];
+shiftState = 1;
 
-while (SimulationResults(idx,2) < targetDist && SimulationResults(idx, 1) < 60)
-    Vin = min(inputVoltage, SimulationResults(idx, 7) + voltageRamp*dt);
-    newTime = SimulationResults(idx, 1) + dt;
-    newPos = SimulationResults(idx, 2) + dt*SimulationResults(idx, 3);
-    newVel = SimulationResults(idx, 3) + dt*SimulationResults(idx, 4);
+lastShift = -1;
+preshiftV = 0;
+shiftFreeze = 0.00;
+
+%% Object Oriented
+% sim = MechanismSimulator(kC(1), kV(1), kA(1), currentLimit, ...
+%                 accelLimit, inputVoltage, robotResistance, numMotors, ...
+%                 motorResistance);
+% while (sim.getPos(end) < targetDist && sim.getTime(end) < 60)
+%     Vin = min(inputVoltage, sim.getVoltage(end) + voltageRamp*dt);
+%     if (sim.getVel(end) < shiftVel*.8 && shiftState == 2) % Shift Down
+%         shiftState = 1;
+%         sim.kC = kC(1);
+%         sim.kV = kV(1);
+%         sim.kA = kA(1);
+%         lastShift = sim.getTime(end);
+%         %fprintf('Shift down @ %.3f\n s', lastShift)
+%         preshiftV = Vin;
+%     elseif (sim.getVel(end) > shiftVel && shiftState == 1) % Shift Up
+%         shiftState = 2;
+%         sim.kC = kC(2);
+%         sim.kV = kV(2);
+%         sim.kA = kA(2);
+%         lastShift = sim.getTime(end);
+%         %fprintf('Shift up   @ %.3f\n s', lastShift)
+%         preshiftV = Vin;
+%     end
+%     
+%     if (sim.getTime(end) - lastShift < shiftFreeze)
+%         sim.step((sim.getTime(end)-lastShift)/shiftFreeze*preshiftV, dt);
+%     else
+%         sim.step(Vin, dt);
+%     end
+% end
+% SimulationResults = sim.getResults;
+
+%% Not Object Oriented
+idx = 1;
+simResults = [0,0,0,0,0,0,0,sysVoltage];
+while (simResults(idx,2) < targetDist && simResults(idx,1) < 60)
+    Vin = min(inputVoltage, simResults(idx,7)+voltageRamp*dt);
     
-    if (newVel < shiftVel)
+    if (simResults(idx,3) < shiftVel)
         shiftState = 1;
     else
         shiftState = 2;
     end
     
-    sysVolt = SimulationResults(idx, 8);
+    [newAccel, newVoltage, newCurrent, newSysVoltage] = MechanismTimestep(...
+        simResults(idx,3), Vin, simResults(idx,8), kC(shiftState), kV(shiftState),...
+        kA(shiftState), currentLimit, accelLimit, inputVoltage, robotResistance,...
+        numMotors, motorResistance);
     
-    [newAccel, newVoltage, newCurrent, newSysVolt] = MechanismTimestep(...
-        newVel, Vin, sysVolt, kC(shiftState), kV(shiftState), kA(shiftState),...
-        currentLimit, accelLimit, inputVoltage, robotResistance, numMotors, ...
-        motorResistance);
+    newTime = simResults(idx,1) + dt;
+    newPos = simResults(idx,2) + dt*simResults(idx,3);
+    newVel = simResults(idx,3) + dt*newAccel;
     
-    idx = idx + 1;
-    if (idx > size(SimulationResults, 1))
-        SimResultsTemp = SimulationResults;
-        SimulationResults = NaN(2*size(SimulationResults, 1), size(SimulationResults, 2));
-        SimulationResults(1:idx-1, :) = SimResultsTemp(:,:);
+    idx = idx+1;
+    if (idx > size(simResults, 1))
+        temp = simResults;
+        simResults = NaN(size(simResults,1)*2, size(simResults,2));
+        simResults(1:size(temp,1),:) = temp;
     end
     
-    SimulationResults(idx, :) = [newTime, newPos, newVel, newAccel,...
-        newCurrent, newVoltage, Vin, newSysVolt];
+    simResults(idx,:) = [newTime,newPos,newVel,newAccel,newCurrent,...
+        newVoltage,Vin,newSysVoltage];
 end
-
-SimulationResults = SimulationResults(1:idx, :);
-SimulationResults = array2table(SimulationResults);
+simResults = simResults(1:idx,:);
+SimulationResults = array2table(simResults);
 SimulationResults.Properties.VariableNames(1:8) = {'time', 'position', ...
-    'velocity', 'acceleration', 'current', 'voltage', 'desiredVoltage', ...
-    'systemVoltage'};
+                'velocity', 'acceleration', 'current', 'voltage', 'desiredVoltage', ...
+                'systemVoltage'};
 end
