@@ -7,16 +7,25 @@ results = DrivetrainSimulator(motor, numMotors, lowGear, highGear, wheelDiameter
     robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, targetDist, inputVoltage, ...
     currentLimit, voltageRamp);
 
+time = results.time;
+pos = results.position;
+vel = results.velocity;
+accel = results.acceleration;
+current = results.current;
+voltage = results.voltage;
+desVoltage = results.desiredVoltage;
+sysVoltage = results.systemVoltage;
+
 motorData = MotorData();
 freeSpeed = motorData.(motor)(1);
 
 f = figure;
 
-endTime = results(end,1);
+endTime = time(end);
 
 % Pos vs Time
 subplot(2,3,1)
-plot(results(:,1), results(:,2)/12)
+plot(time, pos/12)
 xlabel('Time (s)')
 ylabel('Position (ft)')
 grid on
@@ -24,7 +33,7 @@ xlim([0,endTime]);
 
 % Vel vs Time
 subplot(2,3,2)
-plot(results(:,1), results(:,3)/12)
+plot(time, vel/12)
 xlabel('Time (s)')
 ylabel('Velocity (ft/s)')
 grid on
@@ -32,7 +41,7 @@ xlim([0,endTime]);
 
 % Accel vs Time
 subplot(2,3,3)
-plot(results(:,1), results(:,6)/12)
+plot(time, accel/12)
 xlabel('Time (s)')
 ylabel('Acceleration (ft/s^2)')
 grid on
@@ -40,7 +49,7 @@ xlim([0,endTime]);
 
 % Current vs Time
 subplot(2,3,4)
-plot(results(:,1), results(:,7))
+plot(time, current)
 xlabel('Time (s)')
 ylabel('Current per Motor (A)')
 grid on
@@ -49,8 +58,8 @@ xlim([0,endTime]);
 % Voltage vs Time
 subplot(2,3,5)
 hold on
-p1 = plot(results(:,1), results(:,10), 'DisplayName', 'System Voltage');
-p2 = plot(results(:,1), results(:,8), 'DisplayName', 'Motor Voltage');
+p1 = plot(time, sysVoltage, 'DisplayName', 'System Voltage');
+p2 = plot(time, voltage, 'DisplayName', 'Motor Voltage');
 plot([0.0,endTime],[7.0,7.0], '--r');
 xlabel('Time (s)')
 ylabel('Voltage (V)')
@@ -66,7 +75,7 @@ annotation(f, 'textbox', [s.Position(1),s.Position(2), s.Position(3)*1.1,s.Posit
     {sprintf('Gearing (X:1): %.1f/%.1f', lowGear, highGear),...
     sprintf('Speeds (ft/s): %.1f/%.1f', g2s/lowGear, g2s/highGear),...
     sprintf('Time to Target: %.2f s', endTime),...
-    sprintf('Power Use: %.2g A*h',numMotors*sum(results(:,7))*dt/3600),...
+    sprintf('Power Use: %.2g A*h',numMotors*sum(current)*dt/3600),...
     sprintf('Current Limit: %.0f A', currentLimit), ...
     sprintf('Voltage Ramp: %.0f V/s', voltageRamp),...
     sprintf('CoF: %.1f', CoF)});

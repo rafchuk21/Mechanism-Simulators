@@ -46,6 +46,7 @@ twelveVoltSpeed = freeSpeed/60*pi*wheelDiameter*Ev*[1/lowGear, 1/highGear];
 kV = 12./twelveVoltSpeed;
 kC = 12*Rt*radius./motorForce;
 maxAccel = motorForce/weight*gsToInchPerSecSquared;
+accelLimit = gsToInchPerSecSquared*CoF;
 kA = 12./maxAccel;
 sysVoltage = inputVoltage - voltage/motorResistance*numMotors*robotResistance;
 
@@ -53,19 +54,16 @@ shiftVel = (kV(2)/kA(2)-kV(1)/kA(1))^-1*(inputVoltage*(1/kA(2)-1/kA(1))-(kC(2)/k
 %disp(shiftVel)
 
 idx = 1;
-% [t, pos, vel, Vv, Va, accel, current, voltage, inputVoltage]
-SimulationResults = [0.0, 0.0, V0, kV(1)*V0, voltage-kC(1)-kV(1)*V0, ...
+% [t, pos, vel, accel, current, voltage, inputVoltage, sysVoltage]
+SimulationResults = [0.0, 0.0, voltage-kC(1)-kV(1)*V0, ...
     (voltage - kC(1) - kV(1)*V0)/kA(1), voltage/motorResistance, voltage,...
     Vin, sysVoltage];
 
 while (SimulationResults(idx,2) < targetDist && SimulationResults(idx, 1) < 60)
-    % newVoltage = inputVoltage - SimulationResults(idx,7)*numMotors*robotResistance;
-    Vin = min(inputVoltage, SimulationResults(idx, 9) + voltageRamp*dt);
-    newCurrent = min(currentLimit,(Vin - SimulationResults(idx, 8)) / (numMotors * robotResistance));
-    newSysVolt = inputVoltage - newCurrent * numMotors * robotResistance;
+    Vin = min(inputVoltage, SimulationResults(idx, 7) + voltageRamp*dt);
     newTime = SimulationResults(idx, 1) + dt;
     newPos = SimulationResults(idx, 2) + dt*SimulationResults(idx, 3);
-    newVel = SimulationResults(idx, 3) + dt*SimulationResults(idx, 6);
+    newVel = SimulationResults(idx, 3) + dt*SimulationResults(idx, 4);
     
     if (newVel < shiftVel)
         shiftState = 1;
@@ -73,18 +71,12 @@ while (SimulationResults(idx,2) < targetDist && SimulationResults(idx, 1) < 60)
         shiftState = 2;
     end
     
-    newVoltage = min(Vin, (inputVoltage+numMotors*robotResistance*...
-        kV(shiftState)/motorResistance*newVel)/(1+numMotors*robotResistance...
-        /motorResistance)); % V(t) = min(voltageRamp, systemVoltage)
-    newVv = kV(shiftState)*newVel;
-    newVa = newVoltage - kC(shiftState) - newVv;
-    newAccel = newVa/kA(shiftState);
-    if newAccel > gsToInchPerSecSquared*CoF % Apply traction limit
-        newAccel = gsToInchPerSecSquared*CoF;
-        newVa = newAccel*kA(shiftState);
-        newVoltage = newVa + kC(shiftState) + newVv;
-    end
-    %newCurrent = abs(kC(shiftState)+newVa)/motorResistance;
+    sysVolt = SimulationResults(idx, 8);
+    
+    [newAccel, newVoltage, newCurrent, newSysVolt] = MechanismTimestep(...
+        newVel, Vin, sysVolt, kC(shiftState), kV(shiftState), kA(shiftState),...
+        currentLimit, accelLimit, inputVoltage, robotResistance, numMotors, ...
+        motorResistance);
     
     idx = idx + 1;
     if (idx > size(SimulationResults, 1))
@@ -93,10 +85,13 @@ while (SimulationResults(idx,2) < targetDist && SimulationResults(idx, 1) < 60)
         SimulationResults(1:idx-1, :) = SimResultsTemp(:,:);
     end
     
-    SimulationResults(idx, :) = [newTime, newPos, newVel, newVv, newVa,...
-        newAccel, newCurrent, newVoltage, Vin, newSysVolt];
+    SimulationResults(idx, :) = [newTime, newPos, newVel, newAccel,...
+        newCurrent, newVoltage, Vin, newSysVolt];
 end
 
 SimulationResults = SimulationResults(1:idx, :);
-
+SimulationResults = array2table(SimulationResults);
+SimulationResults.Properties.VariableNames(1:8) = {'time', 'position', ...
+    'velocity', 'acceleration', 'current', 'voltage', 'desiredVoltage', ...
+    'systemVoltage'};
 end

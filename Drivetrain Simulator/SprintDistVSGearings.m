@@ -34,8 +34,9 @@ for lowGear = minGearing:delta:maxGearing
             wheelDiameter, robotResistance, velEfficiency, torqueEfficiency,...
             weight, CoF, resistTorque, dt, v0, targetDist, inputVoltage, ...
             currentLimit, voltageRamp);
+        t = results.time;
         times(round((lowGear-minGearing)/delta + 1), round((highGear-minGearing)/delta+1))...
-            = max(results(:,1));
+            = max(t);
     end
 end
 
