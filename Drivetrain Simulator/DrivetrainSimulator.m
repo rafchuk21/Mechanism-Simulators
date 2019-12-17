@@ -68,7 +68,7 @@ if (oop)
     sim = MechanismSimulator(kC(1), kV(1), kA(1), currentLimit, ...
         accelLimit, inputVoltage, robotResistance, numMotors, ...
         motorResistance);
-    while (sim.getPos(end) < targetDist && sim.getTime(end) < 60)
+    while (sim.getPos(end) < targetDist && sim.getTime(end) < 5)
         Vin = min(inputVoltage, sim.getVoltage(end) + voltageRamp*dt);
         if (sim.getVel(end) < shiftVel*.8 && shiftState == 2) % Shift Down
             shiftState = 1;
@@ -99,10 +99,26 @@ else
     %% Not Object Oriented
     idx = 1;
     simResults = [0,0,0,0,0,0,0,sysVoltage];
-    while (simResults(idx,2) < targetDist && simResults(idx,1) < 60)
-        Vin = min(inputVoltage, simResults(idx,7)+voltageRamp*dt);
+    stopping = false;
+    while (abs(simResults(idx,2) - targetDist) > 3 && simResults(idx,1) < 5)
+%         Vb = bangbang(simResults(idx,2), simResults(idx,3), targetDist,...
+%             kC(1), kV(1), kA(1), stopping);
+        Vb = fullthrottle();
+        if (Vb < 0)
+            stopping = true;
+            voltageRamp = 1000000;
+        end
+        Vlast = simResults(idx, 7);
+        if (Vlast - voltageRamp * dt > Vb)
+            Vdesired = Vlast - voltageRamp*dt;
+        elseif (Vlast + voltageRamp * dt < Vb)
+            Vdesired = Vlast + voltageRamp*dt;
+        else
+            Vdesired = Vb;
+        end
+        Vin = min(inputVoltage, Vdesired);
         
-        if (simResults(idx,3) < shiftVel)
+        if (simResults(idx,3) < shiftVel || stopping)
             shiftState = 1;
         else
             shiftState = 2;
@@ -133,4 +149,20 @@ else
         'velocity', 'acceleration', 'current', 'voltage', 'desiredVoltage', ...
         'systemVoltage'};
 end
+end
+
+function V = bangbang(pos, vel, target, kC, kV, kA, stopping)
+ts = -(kA*log((0-kC)/(kV*vel+0-kC)))/kV;
+x = (-0+kC)/kV*ts+kA/kV*((-0+kC)/kV-vel)*(exp(-kV/kA*ts)-1);
+if (x < target - pos && ~stopping)
+    V = 12;
+elseif (vel < 0)
+    V = 0;
+elseif (x >= target-pos || stopping)
+    V = -0.01;
+end
+end
+
+function V = fullthrottle()
+V = 12;
 end

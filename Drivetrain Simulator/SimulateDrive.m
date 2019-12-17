@@ -6,7 +6,6 @@ function f = SimulateDrive(motor, numMotors, lowGear, highGear, wheelDiameter,..
 results = DrivetrainSimulator(motor, numMotors, lowGear, highGear, wheelDiameter,...
     robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, targetDist, inputVoltage, ...
     currentLimit, voltageRamp);
-
 time = results.time;
 pos = results.position;
 vel = results.velocity;
