@@ -43,13 +43,13 @@ freeCurrent = motorData.(motor)(4);
 
 Vin = 0.0;
 
-motorForce = stallTorque*nmToInLb*numMotors*Et/(radius)*[lowGear,highGear];
+gbStallTorque = stallTorque*nmToInLb*numMotors*Et*[lowGear,highGear];
 motorResistance = 12/stallCurrent;
 voltage = Vin/(1+numMotors*(robotResistance/motorResistance));
 twelveVoltSpeed = freeSpeed/60*pi*wheelDiameter*Ev*[1/lowGear, 1/highGear];
 kV = 12./twelveVoltSpeed;
-kC = 12*Rt*radius./motorForce;
-maxAccel = motorForce/weight*gsToInchPerSecSquared;
+kC = 12*Rt./gbStallTorque;
+maxAccel = gbStallTorque/radius/weight*gsToInchPerSecSquared;
 accelLimit = gsToInchPerSecSquared*CoF;
 kA = 12./maxAccel;
 sysVoltage = inputVoltage - voltage/motorResistance*numMotors*robotResistance;
