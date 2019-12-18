@@ -100,10 +100,13 @@ else
     idx = 1;
     simResults = [0,0,0,0,0,0,0,sysVoltage];
     stopping = false;
-    while (abs(simResults(idx,2) - targetDist) > 3 && simResults(idx,1) < 5)
-%         Vb = bangbang(simResults(idx,2), simResults(idx,3), targetDist,...
-%             kC(1), kV(1), kA(1), stopping);
-        Vb = fullthrottle();
+    arrived = false;
+    while (~arrived && simResults(idx,1) < 5)
+        arrived = targetDist-simResults(idx,2) < 6 && ...
+            abs(simResults(idx,3) - 0) < 1;
+        Vb = bangbang(simResults(idx,2), simResults(idx,3), targetDist,...
+            kC(1), kV(1), kA(1), accelLimit, stopping);
+%         Vb = fullthrottle();
         if (Vb < 0)
             stopping = true;
             voltageRamp = 1000000;
@@ -125,7 +128,8 @@ else
         end
         
         [newAccel, newVoltage, newCurrent, newSysVoltage] = MechanismTimestep(...
-            simResults(idx,3), Vin, simResults(idx,8), kC(shiftState), kV(shiftState),...
+            simResults(idx,3), Vin, simResults(idx,8), ...
+            kC(shiftState)*sign(simResults(idx,3)), kV(shiftState),...
             kA(shiftState), currentLimit, accelLimit, inputVoltage, robotResistance,...
             numMotors, motorResistance);
         
@@ -151,15 +155,17 @@ else
 end
 end
 
-function V = bangbang(pos, vel, target, kC, kV, kA, stopping)
-ts = -(kA*log((0-kC)/(kV*vel+0-kC)))/kV;
-x = (-0+kC)/kV*ts+kA/kV*((-0+kC)/kV-vel)*(exp(-kV/kA*ts)-1);
+function V = bangbang(pos, vel, target, kC, kV, kA, accelLimit, stopping)
+% ts = -(kA*log((0-kC)/(kV*vel+0-kC)))/kV;
+% x = (0+kC)/kV*ts+kA/kV*((0+kC)/kV-vel)*(exp(-kV/kA*ts)-1);
+ts = vel/accelLimit;
+x = vel*ts-.5*accelLimit*ts^2;
 if (x < target - pos && ~stopping)
     V = 12;
 elseif (vel < 0)
     V = 0;
 elseif (x >= target-pos || stopping)
-    V = -0.01;
+    V = -12;
 end
 end
 

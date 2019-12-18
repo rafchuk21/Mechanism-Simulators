@@ -4,16 +4,13 @@ function [newAccel, newVoltage, newCurrent, newSysVoltage] = ...
     numMotors, motorResistance)
 
 Vv = kV * vel;
-Vapp = min(Vin, sysVoltage);
-if Vapp < kC
-    kC = -Vapp;
-end
+Vapp = absmin(Vin, sysVoltage*sign(Vin));
 newCurrent = (Vapp - Vv)/motorResistance;
-newCurrent = absmin(newCurrent, currentLimit);
-newCurrent = absmin(newCurrent, (abs(kC) + kA*accelLimit)/motorResistance);
+newCurrent = absmin(newCurrent, currentLimit*sign(newCurrent));
+newCurrent = absmin(newCurrent, (kC + kA*accelLimit)/motorResistance*sign(newCurrent));
+newVoltage = motorResistance*newCurrent+Vv; % If no limits, newVoltage = Vapp
 newSysVoltage = supplyVoltage - abs(newCurrent*numMotors*robotResistance);
-newVoltage = motorResistance*newCurrent+Vv;
-newAccel = (Vapp-Vv-kC)/kA;
+newAccel = (newVoltage-Vv-kC)/kA;
 
 end
 

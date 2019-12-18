@@ -59,13 +59,15 @@ subplot(2,3,5)
 hold on
 p1 = plot(time, sysVoltage, 'DisplayName', 'System Voltage');
 p2 = plot(time, voltage, 'DisplayName', 'Motor Voltage');
+
 plot([0.0,endTime],[7.0,7.0], '--r');
 xlabel('Time (s)')
 ylabel('Voltage (V)')
 grid on
 legend([p1, p2], 'Location', 'southeast')
 xlim([0,endTime]);
-ylim([0,inputVoltage]);
+ylim([-inputVoltage,inputVoltage]);
+yticks([-12,-6,0,6,12]);
 hold off
 
 s = subplot(2,3,6);
