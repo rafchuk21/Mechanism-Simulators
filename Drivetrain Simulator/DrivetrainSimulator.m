@@ -101,12 +101,16 @@ else
     simResults = [0,0,0,0,0,0,0,sysVoltage];
     stopping = false;
     arrived = false;
-    while (~arrived && simResults(idx,1) < 5)
-        arrived = targetDist-simResults(idx,2) < 6 && ...
-            abs(simResults(idx,3) - 0) < 1;
-        Vb = bangbang(simResults(idx,2), simResults(idx,3), targetDist,...
-            kC(1), kV(1), kA(1), accelLimit, stopping);
-%         Vb = fullthrottle();
+    % Bang-Bang stopping:
+%     while (~arrived && simResults(idx,1) < 5)
+%         arrived = targetDist-simResults(idx,2) < 6 && ...
+%             abs(simResults(idx,3) - 0) < 1;
+%         Vb = bangbang(simResults(idx,2), simResults(idx,3), targetDist,...
+%             kC(1), kV(1), kA(1), accelLimit, stopping);
+    % No stopping:
+    while (simResults(idx, 1) < 5 && simResults(idx,2) < targetDist)
+        Vb = fullthrottle();
+    % End of stopping options
         if (Vb < 0)
             stopping = true;
             voltageRamp = 1000000;
@@ -164,7 +168,7 @@ if (x < target - pos && ~stopping)
     V = 12;
 elseif (vel < 0)
     V = 0;
-elseif (x >= target-pos || stopping)
+elseif (x >= target - pos || stopping)
     V = -12;
 end
 end

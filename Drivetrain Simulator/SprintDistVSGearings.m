@@ -18,7 +18,7 @@ voltageRamp = 120;
 
 minGearing = 2;
 maxGearing = 20;
-delta = .5;
+delta = .1;
 
 motordata = MotorData();
 freeSpeed = motordata.(motor)(1);
@@ -92,6 +92,15 @@ grid on
 hold off
 
 f2 = SimulateDrive(motor, numMotors, lowGear, highGear, ...
+            wheelDiameter, robotResistance, velEfficiency, torqueEfficiency,...
+            weight, CoF, resistTorque, dt, v0, targetDist, inputVoltage, ...
+            currentLimit, voltageRamp);
+        
+sstimes = diag(times);
+[~, ssidx] = min(sstimes);
+ssgear = minGearing + delta * (ssidx - 1);
+
+f3 = SimulateDrive(motor, numMotors, ssgear, ssgear, ...
             wheelDiameter, robotResistance, velEfficiency, torqueEfficiency,...
             weight, CoF, resistTorque, dt, v0, targetDist, inputVoltage, ...
             currentLimit, voltageRamp);
