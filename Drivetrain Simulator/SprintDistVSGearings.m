@@ -2,7 +2,7 @@
 
 motor = 'MiniCIM';
 numMotors = 6;
-wheelDiameter = 4;
+wheelDiameter = 6;
 robotResistance = .02;
 velEfficiency = 0.9;
 torqueEfficiency = 0.9;
