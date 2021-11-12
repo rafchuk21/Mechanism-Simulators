@@ -47,11 +47,13 @@ gbStallTorque = stallTorque*nmToInLb*numMotors*Et*[lowGear,highGear];
 motorResistance = 12/stallCurrent;
 voltage = Vin/(1+numMotors*(robotResistance/motorResistance));
 twelveVoltSpeed = freeSpeed/60*pi*wheelDiameter*Ev*[1/lowGear, 1/highGear];
-kV = 12./twelveVoltSpeed;
 kC = 12*Rt./gbStallTorque;
+kV = (12-kC)./twelveVoltSpeed;
 maxAccel = gbStallTorque/radius/weight*gsToInchPerSecSquared;
 accelLimit = gsToInchPerSecSquared*CoF;
 kA = 12./maxAccel;
+fprintf('kC: %.3f, kV: %.3f, kA: %.3f\n', kC(1), kV(1), kA(1));
+fprintf('kC: %.3f, kV: %.3f, kA: %.3f\n', kC(2), kV(2), kA(2));
 sysVoltage = inputVoltage - voltage/motorResistance*numMotors*robotResistance;
 
 shiftVel = (kV(2)/kA(2)-kV(1)/kA(1))^-1*(inputVoltage*(1/kA(2)-1/kA(1))-(kC(2)/kA(2)-kC(1)/kA(1)));
@@ -98,7 +100,7 @@ if (oop)
 else
     %% Not Object Oriented
     idx = 1;
-    simResults = [0,0,0,0,0,0,0,sysVoltage];
+    simResults = [0,0,V0,0,0,0,0,sysVoltage];
     stopping = false;
     arrived = false;
     % Bang-Bang stopping:
@@ -125,21 +127,25 @@ else
         end
         Vin = min(inputVoltage, Vdesired);
         
-        if (simResults(idx,3) < shiftVel || stopping)
+        if (shiftState == 2 && (simResults(idx,3) < shiftVel || stopping))
             shiftState = 1;
-        else
+            %disp("Shifting Down");
+        elseif (shiftState == 1 && simResults(idx,3) > shiftVel)
             shiftState = 2;
+            %disp("Shifting Up");
         end
         
+        sysVoltageAvg = mean(simResults(max(idx-20,1):max(idx-1,1),8));
+        
         [newAccel, newVoltage, newCurrent, newSysVoltage] = MechanismTimestep(...
-            simResults(idx,3), Vin, simResults(idx,8), ...
+            simResults(idx,3), Vin, sysVoltageAvg, ...
             kC(shiftState)*sign(simResults(idx,3)), kV(shiftState),...
             kA(shiftState), currentLimit, accelLimit, inputVoltage, robotResistance,...
             numMotors, motorResistance);
         
         newTime = simResults(idx,1) + dt;
         newPos = simResults(idx,2) + dt*simResults(idx,3);
-        newVel = simResults(idx,3) + dt*newAccel;
+        newVel = simResults(idx,3) + dt*(newAccel+simResults(max(idx-1,1),4))/2;
         
         idx = idx+1;
         if (idx > size(simResults, 1))

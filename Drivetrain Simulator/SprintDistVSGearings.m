@@ -1,8 +1,8 @@
 % Optimizes low gear and high gear for a given robot and sprint distance.
 
-motor = 'MiniCIM';
-numMotors = 6;
-wheelDiameter = 6;
+motor = 'NEO';
+numMotors = 4;
+wheelDiameter = 4;
 robotResistance = .02;
 velEfficiency = 0.9;
 torqueEfficiency = 0.9;
@@ -11,14 +11,14 @@ CoF = 1.1;
 resistTorque = 7;
 dt = .001;
 v0 = 0;
-targetDist = 240;
+targetDist = 54*12;
 inputVoltage = 12;
-currentLimit = 60;
-voltageRamp = 120;
+currentLimit = 40;
+voltageRamp = 999999;
 
 minGearing = 2;
-maxGearing = 20;
-delta = .1;
+maxGearing = 15;
+delta = .2;
 
 motordata = MotorData();
 freeSpeed = motordata.(motor)(1);
