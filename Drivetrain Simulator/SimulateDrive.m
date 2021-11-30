@@ -1,11 +1,20 @@
 function f = SimulateDrive(motor, numMotors, lowGear, highGear, wheelDiameter,...
-    robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, targetDist, inputVoltage, ...
-    currentLimit, voltageRamp)
+    robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, inputVoltage, ...
+    currentLimit, voltageRamp, controlFun, stopCondition)
 % Runs the DrivetrainSimulator function and creates plots.
+% controlFun: Function handle (pos, vel, accel, kA, kV, kC) -> V
+
+if ~exist('controlFun', 'var')
+    controlFun = @(~,~,~,~,~,~) 12;
+end
+
+if ~exist('stopCondition', 'var')
+    stopCondition = @(pos, vel) pos > 27*12;
+end
 
 results = DrivetrainSimulator(motor, numMotors, lowGear, highGear, wheelDiameter,...
-    robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, targetDist, inputVoltage, ...
-    currentLimit, voltageRamp);
+    robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, inputVoltage, ...
+    currentLimit, voltageRamp, controlFun, stopCondition);
 time = results.time;
 pos = results.position;
 vel = results.velocity;

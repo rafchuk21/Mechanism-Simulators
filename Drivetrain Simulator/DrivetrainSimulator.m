@@ -1,7 +1,7 @@
 function SimulationResults = ...
     DrivetrainSimulator(motor, numMotors, lowGear, highGear, wheelDiameter,...
-    robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, targetDist, inputVoltage, ...
-    currentLimit, voltageRamp)
+    robotResistance, Ev, Et, weight, CoF, Rt, dt, V0, inputVoltage, ...
+    currentLimit, voltageRamp, controlFun, stopCondition)
 % Simulates the behavior of a drivetrain given a "full ahead" voltage.
 % Accounts for voltage sag and implements current limiting and voltage
 % ramping. Does not come to rest at target distance and does not account
@@ -22,10 +22,11 @@ function SimulationResults = ...
 % Rt: Wheel resistance torque
 % dt: Time interval for Euler's method (s)
 % V0: Initial velocity (in/s)
-% targetDist: Sprint distance to end simulation (in)
 % inputVoltage: Constant voltage input, available battery voltage (V)
 % currentLimit: Current limit (A)
 % voltageRamp: Voltage ramp (V/s)
+% controlFun: Function handle (pos, vel, accel, kA, kV, kC) -> V
+% stopCondition: Function handle (pos, vel) -> boolean (true if stop)
 
 % Conversion factors
 nmToInLb = 8.85074579;
@@ -78,10 +79,22 @@ idx = 1;
 simResults = [0,0,V0,0,0,0,0,sysVoltage];
 stopping = false;
 
-while (simResults(idx, 1) < 5 && simResults(idx,2) < targetDist)
+if ~exist('controlFun', 'var')
+    controlFun = @(~,~,~,~,~,~) 12;
+end
+
+if ~exist('stopCondition', 'var')
+    stopCondition = @(pos, vel) pos > 27*12;
+end
+
+while (simResults(idx, 1) < 30 && ~stopCondition(simResults(idx,2), simResults(idx,3)))
     % Can write different driving input - here just simulates driver giving
     % full 12V signal constantly.
-    Vb = fullthrottle(); %Vb - base input voltage
+    % Vb = fullthrottle(); %Vb - base input voltage
+    currPos = simResults(idx,2);
+    currVel = simResults(idx,3);
+    currAccel = simResults(idx,4);
+    Vb = controlFun(currPos, currVel, currAccel, kA, kV, kC(shiftState));
     
     % Gets the voltage from the last timestep
     Vlast = simResults(idx, 7);
@@ -137,6 +150,7 @@ while (simResults(idx, 1) < 5 && simResults(idx,2) < targetDist)
     simResults(idx,:) = [newTime,newPos,newVel,newAccel,newCurrent,...
         newVoltage,Vin,newSysVoltage];
 end
+
 % Trim simulation results, convert to a table, assign table names.
 % SimulationResults gets returned by the function.
 simResults = simResults(1:idx,:);
@@ -148,4 +162,8 @@ end
 
 function V = fullthrottle()
 V = 12;
+end
+
+function V = posPD (currPos, targetPos, vel, kP, kD, kS)
+V = kS + kP*(targetPos-currPos) - kD*vel;
 end

@@ -31,7 +31,12 @@ newCurrent = absmin(newCurrent, (kC + kA*accelLimit)/motorResistance*sign(newCur
 % Find the voltage that would give the desired current
 newVoltage = motorResistance*newCurrent+Vv; % If no limits, newVoltage = Vapp
 % Compute the system voltage after voltage sag
-newSysVoltage = supplyVoltage - abs(newCurrent*numMotors*robotResistance);
+if (newVoltage * newCurrent < 0)
+    voltageSag = -abs(newCurrent*numMotors*robotResistance);
+else
+    voltageSag = abs(newCurrent*numMotors*robotResistance);
+end
+newSysVoltage = supplyVoltage - voltageSag;
 % Compute the new acceleration of the system
 newAccel = (newVoltage-Vv-kC)/kA;
 
