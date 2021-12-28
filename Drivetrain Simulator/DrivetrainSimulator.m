@@ -61,9 +61,18 @@ maxAccel = gbStallTorque/radius/weight*gsToInchPerSecSquared;
 % Maximum acceleration that traction allows for (a_max = F_N*CoF/m = g*CoF)
 accelLimit = gsToInchPerSecSquared*CoF;
 % Value for kA (V/(in/s^2))
-kA = 12./maxAccel;
-%fprintf('kC: %.3f, kV: %.3f, kA: %.3f\n', kC(1), kV(1), kA(1));
-%fprintf('kC: %.3f, kV: %.3f, kA: %.3f\n', kC(2), kV(2), kA(2));
+kA = (12-kC)./maxAccel;
+
+kC = [.954, 1.11];
+kV = [5.19, 2.04]/39.37;
+kA = [.573, .637]/39.37*10;
+
+kC(2) = kC(1);
+kV(2) = kV(1);
+kA(2) = kA(1);
+
+fprintf('kC: %.3f, kV: %.3f, kA: %.3f\n', kC(1), kV(1), kA(1));
+fprintf('kC: %.3f, kV: %.3f, kA: %.3f\n', kC(2), kV(2), kA(2));
 % System voltage (post voltage-sag) for initial input voltage
 sysVoltage = inputVoltage - voltage/motorResistance*numMotors*robotResistance;
 

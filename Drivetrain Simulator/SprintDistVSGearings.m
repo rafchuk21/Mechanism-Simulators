@@ -1,7 +1,7 @@
 % Optimizes low gear and high gear for a given robot and sprint distance.
 
 motor = 'NEO';
-numMotors = 6;
+numMotors = 4;
 wheelDiameter = 4;
 robotResistance = .02;
 velEfficiency = 0.9;
